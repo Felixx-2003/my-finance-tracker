@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Settings {
+  id            Int    @id @default(1)
+  cycleStartDay Int    @default(25)
+  theme         String @default("light")
+  onboarded     Boolean @default(false)
+}
+
+model Category {
+  id           Int           @id @default(autoincrement())
+  name         String        @unique
+  icon         String
+  color        String
+  kind         String        @default("EXPENSE")
+  favorite     Boolean       @default(false)
+  transactions Transaction[]
+  budgets      Budget[]
+}
+
+model Account {
+  id               Int           @id @default(autoincrement())
+  name             String        @unique
+  type             String
+  provider         String?
+  openingBalance   Int           @default(0)
+  transactions     Transaction[] @relation("TransactionAccount")
+  transfersFrom    Transaction[] @relation("TransferFrom")
+  transfersTo      Transaction[] @relation("TransferTo")
+  receivedPaybacks Payback[]     @relation("PaybackReceivedAccount")
+}
+
+model Transaction {
+  id            Int       @id @default(autoincrement())
+  type          String
+  amount        Int
+  date          DateTime
+  merchant      String    @default("")
+  note          String    @default("")
+  categoryId    Int?
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId     Int?
+  account       Account?  @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: SetNull)
+  fromAccountId Int?
+  fromAccount   Account?  @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: SetNull)
+  toAccountId   Int?
+  toAccount     Account?  @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: SetNull)
+  paybacks      Payback[]
+  createdAt     DateTime  @default(now())
+}
+
+model Budget {
+  id         Int      @id @default(autoincrement())
+  categoryId Int      @unique
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  amount     Int
+}
+
+model PaybackPerson {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  paybacks Payback[]
+}
+
+model Payback {
+  id                Int           @id @default(autoincrement())
+  transactionId     Int
+  transaction       Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  personId          Int
+  person            PaybackPerson @relation(fields: [personId], references: [id], onDelete: Cascade)
+  amount            Int
+  receivedAmount    Int           @default(0)
+  receivedAccountId Int?
+  receivedAccount   Account?      @relation("PaybackReceivedAccount", fields: [receivedAccountId], references: [id], onDelete: SetNull)
+}

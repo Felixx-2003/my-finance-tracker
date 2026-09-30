@@ -1,0 +1,112 @@
+.action-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(24, 27, 54, .48);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.action-dialog {
+  width: min(100%, 430px);
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, .68);
+  border-radius: 24px;
+  background: var(--surface, #fff);
+  color: var(--ink, #1b2540);
+  box-shadow: 0 28px 70px rgba(22, 29, 74, .24);
+  font-family: inherit;
+  text-align: left;
+  animation: action-dialog-enter .18s ease-out both;
+}
+
+.action-dialog__icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  border-radius: 17px;
+  color: #4669d7;
+  background: linear-gradient(140deg, #e7efff, #f2eaff);
+}
+
+.action-dialog--danger .action-dialog__icon,
+.action-dialog--error .action-dialog__icon {
+  color: #cc354f;
+  background: linear-gradient(140deg, #ffe3e5, #fff0e8);
+}
+
+.action-dialog--success .action-dialog__icon {
+  color: #137a61;
+  background: linear-gradient(140deg, #d9f7ef, #e7f5ff);
+}
+
+.action-dialog__title {
+  margin: 0 0 9px;
+  color: inherit;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: -.025em;
+}
+
+.action-dialog__description {
+  margin: 0;
+  color: var(--muted, #66718d);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.action-dialog__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.action-dialog__button {
+  flex: 1;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  transition: transform .16s ease, filter .16s ease, background .16s ease;
+}
+
+.action-dialog__button:not(:disabled):hover { transform: translateY(-1px); filter: brightness(1.04); }
+.action-dialog__button:disabled { opacity: .65; cursor: wait; }
+.action-dialog__button:focus-visible { outline: 3px solid #8ab0ff; outline-offset: 2px; }
+.action-dialog__button--cancel { background: var(--surface2, #f2f4fa); color: var(--ink, #1b2540); }
+.action-dialog__button--primary { background: #536de7; color: #fff; }
+.action-dialog__button--danger { background: #cf3d52; color: #fff; }
+.action-dialog__spinner { animation: action-dialog-spin .8s linear infinite; }
+
+@keyframes action-dialog-enter {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes action-dialog-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .action-dialog { animation: none; }
+  .action-dialog__button { transition: none; }
+}
+@media (max-width: 480px) {
+  .action-dialog-backdrop { padding: 16px; }
+  .action-dialog { padding: 24px; }
+  .action-dialog__title { font-size: 21px; }
+}
