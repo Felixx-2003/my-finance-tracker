@@ -1,4 +1,4 @@
-# Pocketwise
+# MyFinance
 
 A mobile-first personal finance tracker for daily expenses, income, transfers, budgets, accounts, paybacks, and reports. Values are stored in MYR cents in a local SQLite database. The default finance cycle runs from the 25th to the 24th, using the Asia/Kuala_Lumpur date.
 

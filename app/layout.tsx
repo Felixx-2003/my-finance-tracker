@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import './theme.css';
 
-export const metadata: Metadata = { title: 'Pocketwise — Your money, clearly', description: 'A personal finance tracker built for everyday use.' };
+export const metadata: Metadata = { title: 'MyFinance', description: 'A personal finance tracker built for everyday use.' };
 const extensionAttributeCleanup = `(() => {
   const attribute = 'bis_skin_checked';
   const clean = (root) => {

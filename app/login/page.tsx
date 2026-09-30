@@ -25,7 +25,7 @@ export default function Login() {
 
   return <main className="login-page"><form className="login-card" onSubmit={submit}>
     <span className="login-mark"><Wallet size={26}/></span>
-    <h1>Pocketwise</h1><p>Your money, privately in one place.</p>
+    <h1>MyFinance</h1><p>Your money, privately in one place.</p>
     <label htmlFor="password">Password</label>
     <div className="login-input"><LockKeyhole size={19}/><input id="password" type="password" autoComplete="current-password" autoFocus value={password} onChange={event=>setPassword(event.target.value)} required/></div>
     {error && <p className="login-error" role="alert">{error}</p>}
