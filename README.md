@@ -36,8 +36,8 @@ Accounts, transactions, budgets, categories, and paybacks are stored by Prisma i
 The cloud build uses Next.js on Vercel and a hosted Postgres database, such as Neon. The local build keeps SQLite. `vercel.json` selects the cloud build automatically on Vercel. The cloud API requires a single-user password and signed session cookie before any finance data is served.
 
 1. Back up `prisma/dev.db`. Create a private Postgres database and copy its connection string.
-2. In the Vercel project, set `DATABASE_URL` to that string, `APP_PASSWORD` to a strong unique password, and `AUTH_SECRET` to a random secret of at least 32 characters. Set the same database URL locally only while running the following cloud commands; keep your normal `.env` set to SQLite for local use.
-3. Apply the cloud schema with `npm run db:cloud:push`. This command must connect to the new, empty Postgres database. It does not use the local SQLite migrations.
+2. In the Vercel project, set `DATABASE_URL` to Neon's **pooled** connection string and `DIRECT_URL` to its **direct** connection string. Set `APP_PASSWORD` to a strong unique password and `AUTH_SECRET` to a random secret of at least 32 characters. For the local setup commands below, set both `DATABASE_URL` and `DIRECT_URL` to the direct URL in the command environment; keep your normal `.env` set to SQLite for local use.
+3. Apply the cloud schema with `npm run db:cloud:push`. Prisma uses `DIRECT_URL` for this command. It must connect to the new, empty Postgres database and does not use the local SQLite migrations.
 4. Run `npm run build:cloud` locally to generate the Postgres Prisma Client, then `npm run db:cloud:import` to copy the existing local SQLite records to the empty cloud database. The import preserves account and transaction IDs and refuses to merge with existing cloud finance data.
 5. Deploy the repository to Vercel. The sign-in page will protect the app and all data APIs. After cloud commands, run `npm run db:generate` before starting the local SQLite app again.
 
