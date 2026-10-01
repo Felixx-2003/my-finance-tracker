@@ -12,7 +12,7 @@ npm run db:setup
 npm run dev
 ```
 
-Open <http://127.0.0.1:3000>. The setup command applies the checked-in SQL migrations, generates Prisma Client, and loads demo data. **On an existing installation, run only `npm run db:migrate` and `npm run db:generate` to preserve your records.** `npm run db:seed` and **Settings → Reset demo data** replace all finance data with the sample records.
+Open <http://127.0.0.1:3000>. The setup command applies the checked-in SQL migrations, generates Prisma Client, and loads demo data. **On an existing installation, run only `npm run db:migrate` and `npm run db:generate` to preserve your records.** `npm run db:seed` replaces all finance data with the sample records. **Settings → Your data → Clear history & start fresh** permanently clears transactions, paybacks, saved people, and budgets and sets all account opening balances to zero after confirmation. Account names, categories, and preferences remain. New entries default to today in Asia/Kuala_Lumpur; set your current opening balances in Accounts before recording new spending. This clears the database used by the running app (Neon in the cloud or SQLite locally).
 
 This Windows environment's Prisma schema engine could not run `prisma migrate dev` or `migrate deploy`, so `db:migrate` uses Node's SQLite API to apply the SQL migration under `prisma/migrations`. The schema and generated Prisma client remain the source of types and data access. Future migrations can be added as ordered folders with `migration.sql` files.
 
@@ -54,3 +54,5 @@ Cloud services have free tier limits and can change their terms. The app is not 
 CSV export includes the requested columns and encodes paybacks as `Name:Amount;Name:Amount` in the Payback column. Import recognizes exported transactions and paybacks; it skips rows whose account or category is missing. Imported paybacks start pending because the export format does not include receipt history.
 
 For a live smoke check after starting the server, run `node scripts/smoke.mjs`. It restores the demo data when finished.
+
+Run `npm run test:reset` to verify reset confirmation, database rollback, and fresh entries using a disposable SQLite database. It leaves your actual finance records untouched.
