@@ -60,3 +60,5 @@ Run `npm run test:reset` to verify both reset confirmations, database rollback, 
 **Settings → Your data → Reset to empty** is a separate reset that also deletes every account and category. It inserts no demo data. After confirmation, add an account with your current balance and create categories in Settings to start recording today. Appearance and cycle preferences remain.
 
 Normal saves apply the confirmed API result directly to the screen instead of reloading all finance data. Bulk CSV imports and resets still reload the database. The cloud backend is configured for Vercel Singapore (`sin1`) alongside the current Neon Singapore database. Run `npm run test:actions` to compare screen updates against full database reloads using disposable test data.
+
+Category forms show visual icon choices with friendly labels and a live preview. New categories use Automatic color by default, choosing the least-used color from the palette; Custom color remains available. Editing a category preserves its existing color unless you select Automatic or change the custom color.
