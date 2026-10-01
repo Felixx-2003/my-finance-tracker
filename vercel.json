@@ -1,4 +1,7 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build:cloud"
+  "buildCommand": "npm run build:cloud",
+  "regions": [
+    "sin1"
+  ]
 }

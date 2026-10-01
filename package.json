@@ -14,7 +14,8 @@
     "db:generate": "node scripts/generate.mjs",
     "db:setup": "npm run db:migrate && npm run db:generate && npm run db:seed",
     "db:seed": "node --experimental-strip-types prisma/seed.ts",
-    "test:reset": "node scripts/test-reset.mjs"
+    "test:reset": "node scripts/test-reset.mjs",
+    "test:actions": "node scripts/test-actions.mjs"
   },
   "prisma": {
     "seed": "node --experimental-strip-types prisma/seed.ts"

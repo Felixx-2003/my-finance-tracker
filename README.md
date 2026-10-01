@@ -55,4 +55,8 @@ CSV export includes the requested columns and encodes paybacks as `Name:Amount;N
 
 For a live smoke check after starting the server, run `node scripts/smoke.mjs`. It restores the demo data when finished.
 
-Run `npm run test:reset` to verify reset confirmation, database rollback, and fresh entries using a disposable SQLite database. It leaves your actual finance records untouched.
+Run `npm run test:reset` to verify both reset confirmations, database rollback, empty reloads, and fresh entries using a disposable SQLite database. It leaves your actual finance records untouched.
+
+**Settings → Your data → Reset to empty** is a separate reset that also deletes every account and category. It inserts no demo data. After confirmation, add an account with your current balance and create categories in Settings to start recording today. Appearance and cycle preferences remain.
+
+Normal saves apply the confirmed API result directly to the screen instead of reloading all finance data. Bulk CSV imports and resets still reload the database. The cloud backend is configured for Vercel Singapore (`sin1`) alongside the current Neon Singapore database. Run `npm run test:actions` to compare screen updates against full database reloads using disposable test data.

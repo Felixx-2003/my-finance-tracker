@@ -3,23 +3,34 @@ import { prisma as db } from '@/lib/prisma';
 import { dbDate, parseMoney, todayKL, personalExpense } from '@/lib/finance';
 
 export const dynamic = 'force-dynamic';
-const includes = { category: true, account: true, fromAccount: true, toAccount: true, paybacks: { include: { person: true, receivedAccount: true } } } as const;
 const id = (v: unknown) => { const n = Number(v); if (!Number.isInteger(n) || n < 1) throw new Error('Choose a valid item.'); return n; };
 const optionalId = (v: unknown) => v === null || v === undefined || v === '' ? null : id(v);
 const clean = (v: unknown, max = 120) => String(v ?? '').trim().slice(0, max);
 const date = (v: unknown) => { const s = String(v || todayKL()); if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || Number.isNaN(dbDate(s).getTime()) || dbDate(s).toISOString().slice(0,10) !== s) throw new Error('Choose a valid date.'); return dbDate(s); };
 
 export async function GET() {
-  const [settings, categories, accounts, budgets, people, transactions] = await Promise.all([
-    db.settings.upsert({where:{id:1},create:{id:1},update:{}}),
+  const [existingSettings, categories, accounts, budgets, people, records] = await Promise.all([
+    db.settings.findUnique({where:{id:1}}),
     db.category.findMany({orderBy:[{favorite:'desc'},{name:'asc'}]}),
     db.account.findMany({orderBy:{id:'asc'}}),
-    db.budget.findMany({include:{category:true},orderBy:{id:'asc'}}),
+    db.budget.findMany({orderBy:{id:'asc'}}),
     db.paybackPerson.findMany({orderBy:{name:'asc'}}),
-    db.transaction.findMany({include:includes,orderBy:[{date:'desc'},{id:'desc'}]})
+    db.transaction.findMany({include:{paybacks:true},orderBy:[{date:'desc'},{id:'desc'}]})
   ]);
+  const settings = existingSettings || await db.settings.upsert({where:{id:1},create:{id:1},update:{}});
+  const categoryMap = new Map(categories.map(category => [category.id, category]));
+  const accountMap = new Map(accounts.map(account => [account.id, account]));
+  const personMap = new Map(people.map(person => [person.id, person]));
+  const transactions = records.map(transaction => ({
+    ...transaction,
+    category: categoryMap.get(transaction.categoryId ?? 0) || null,
+    account: accountMap.get(transaction.accountId ?? 0) || null,
+    fromAccount: accountMap.get(transaction.fromAccountId ?? 0) || null,
+    toAccount: accountMap.get(transaction.toAccountId ?? 0) || null,
+    paybacks: transaction.paybacks.map(payback => ({ ...payback, person: personMap.get(payback.personId), receivedAccount: accountMap.get(payback.receivedAccountId ?? 0) || null })),
+  }));
   categories.sort((a,b) => Number(/^Other(?: Income)?$/i.test(a.name)) - Number(/^Other(?: Income)?$/i.test(b.name)));
-  return NextResponse.json({settings,categories,accounts,budgets,people,transactions});
+  return NextResponse.json({settings,categories,accounts,budgets:budgets.map(budget=>({...budget,category:categoryMap.get(budget.categoryId)})),people,transactions});
 }
 
 export async function POST(request: NextRequest) {
@@ -64,7 +75,8 @@ export async function POST(request: NextRequest) {
       const receivedAmount = body.receivedAmount === undefined ? undefined : Math.round(Number(body.receivedAmount) * 100);
       if (receivedAmount !== undefined && (!Number.isInteger(receivedAmount) || receivedAmount < 0 || receivedAmount > amount)) throw new Error('Received amount must be between zero and the payback amount.');
       const data = {transactionId,personId:person.id,amount, ...(receivedAmount === undefined ? {} : {receivedAmount}),receivedAccountId:optionalId(body.receivedAccountId)};
-      result = existingId ? await db.payback.update({where:{id:existingId},data}) : await db.payback.create({data});
+      const saved = existingId ? await db.payback.update({where:{id:existingId},data}) : await db.payback.create({data});
+      result = {...saved,person:{id:person.id,name:person.name}};
     } else if (action === 'payback.receive') {
       const payback = await db.payback.findUnique({where:{id:id(body.id)},include:{transaction:true}});
       if (!payback) throw new Error('Payback not found.');
@@ -91,8 +103,10 @@ export async function POST(request: NextRequest) {
       result = body.id ? await db.account.update({where:{id:id(body.id)},data:{name,type,provider,openingBalance}}) : await db.account.create({data:{name,type,provider,openingBalance}});
     } else if (action === 'account.delete') {
       const accountId = id(body.id);
-      const used = await db.transaction.count({where:{OR:[{accountId},{fromAccountId:accountId},{toAccountId:accountId}]}});
-      const received = await db.payback.count({where:{receivedAccountId:accountId}});
+      const [used, received] = await Promise.all([
+        db.transaction.count({where:{OR:[{accountId},{fromAccountId:accountId},{toAccountId:accountId}]}}),
+        db.payback.count({where:{receivedAccountId:accountId}}),
+      ]);
       if (used || received) throw new Error('This account has transactions or received paybacks. Move or delete them first.');
       result = await db.account.delete({where:{id:accountId}});
     } else if (action === 'category.save') {

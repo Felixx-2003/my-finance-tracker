@@ -17,7 +17,7 @@ async function loadTypeScript(path, dependencies = {}) {
 }
 const finance = await loadTypeScript('../lib/finance.ts');
 const { todayKL, dbDate } = finance;
-const { resetHistory } = await loadTypeScript('../lib/reset-history.ts', { './finance': finance });
+const { resetHistory, resetToEmpty } = await loadTypeScript('../lib/reset-history.ts', { './finance': finance });
 
 const directory = await mkdtemp(join(tmpdir(), 'myfinance-reset-test-'));
 const databasePath = join(directory, 'reset.db');
@@ -78,7 +78,51 @@ try {
   const fresh = await db.transaction.create({ data: { type: 'EXPENSE', amount: 1500, date: dbDate(todayKL()), accountId: bank.id, categoryId: category.id } });
   assert.equal(fresh.date.toISOString().slice(0, 10), todayKL());
   assert.equal(await db.transaction.count(), 1);
-  console.log('Reset passed: all history cleared, balances zero, setup preserved, failed reset rolled back, repeat reset safe, new records dated today.');
+  await db.budget.create({ data: { categoryId: category.id, amount: 30000 } });
+  const newPerson = await db.paybackPerson.create({ data: { name: 'New friend' } });
+  await db.payback.create({ data: { transactionId: fresh.id, personId: newPerson.id, amount: 500, receivedAmount: 200, receivedAccountId: bank.id } });
+  const beforeEmpty = await snapshot();
+  const { POST: resetEmpty } = await loadTypeScript('../app/api/reset-empty/route.ts', {
+    '@/lib/prisma': { prisma: db }, '@/lib/reset-history': { resetToEmpty },
+  });
+  assert.equal((await resetEmpty({ json: async () => { throw new Error('Malformed JSON'); } })).status, 400);
+  for (const confirmation of [undefined, 'wrong', 'RESET_HISTORY']) {
+    assert.equal((await resetEmpty(request(confirmation))).status, 400);
+  }
+  assert.deepEqual(await snapshot(), beforeEmpty, 'Empty reset requires its own confirmation');
+  const failEmpty = new DatabaseSync(databasePath);
+  failEmpty.exec("CREATE TRIGGER prevent_empty_reset BEFORE DELETE ON Category BEGIN SELECT RAISE(ABORT, 'simulated empty reset failure'); END");
+  failEmpty.close();
+  assert.equal((await resetEmpty(request('RESET_TO_EMPTY'))).status, 500);
+  assert.deepEqual(await snapshot(), beforeEmpty, 'Empty reset must roll back accounts and all earlier deletions on failure');
+  const allowEmpty = new DatabaseSync(databasePath);
+  allowEmpty.exec('DROP TRIGGER prevent_empty_reset');
+  allowEmpty.close();
+  const emptyResponse = await resetEmpty(request('RESET_TO_EMPTY'));
+  assert.equal(emptyResponse.status, 200);
+  assert.deepEqual(await emptyResponse.json(), { ok: true, startedOn: todayKL() });
+  const completelyEmpty = await snapshot();
+  for (const name of ['budgets', 'transactions', 'people', 'paybacks', 'accounts', 'categories']) {
+    assert.equal(completelyEmpty[name].length, 0, name + ' must be empty');
+  }
+  assert.deepEqual(completelyEmpty.settings, beforeEmpty.settings);
+  assert.equal((await resetEmpty(request('RESET_TO_EMPTY'))).status, 200);
+  const dataApi = await loadTypeScript('../app/api/data/route.ts', {
+    '@/lib/prisma': { prisma: db }, '@/lib/finance': finance,
+  });
+  const emptyScreen = await (await dataApi.GET()).json();
+  for (const name of ['budgets', 'transactions', 'people', 'accounts', 'categories']) assert.equal(emptyScreen[name].length, 0, 'Loading must not restore demo data');
+  const save = async body => {
+    const response = await dataApi.POST({ json: async () => body });
+    assert.equal(response.status, 200);
+    return (await response.json()).result;
+  };
+  const newAccount = await save({ action: 'account.save', name: 'My wallet', type: 'Cash', openingBalance: '100' });
+  const newCategory = await save({ action: 'category.save', name: 'Lunch', kind: 'EXPENSE' });
+  const firstRecord = await save({ action: 'transaction.save', type: 'EXPENSE', amount: '10', accountId: newAccount.id, categoryId: newCategory.id });
+  assert.equal(firstRecord.date.slice(0, 10), todayKL());
+  assert.equal(await db.transaction.count(), 1);
+  console.log('Both resets passed: explicit confirmations, complete deletion, failure rollback, repeat resets, no demo records on reload, and new setup with transactions defaulting to today.');
 } finally {
   await db.$disconnect();
   for (const name of await readdir(directory)) await unlink(join(directory, name));

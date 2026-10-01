@@ -13,3 +13,17 @@ export async function resetHistory(db: PrismaClient) {
   ]);
   return { startedOn };
 }
+
+/** Remove all finance data without inserting sample accounts or categories. */
+export async function resetToEmpty(db: PrismaClient) {
+  const startedOn = todayKL();
+  await db.$transaction([
+    db.payback.deleteMany(),
+    db.transaction.deleteMany(),
+    db.paybackPerson.deleteMany(),
+    db.budget.deleteMany(),
+    db.account.deleteMany(),
+    db.category.deleteMany(),
+  ]);
+  return { startedOn };
+}
